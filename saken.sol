@@ -1,28 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-interface sakenToken { 
-    function balanceOf(address _userAddress) external view returns (uint256);
-    function transfer(address _to, uint256 _tokens)
-        external
-        returns (bool);
-    function approve(address _from, uint256 _tokens)
-        external 
-        returns (bool);
+interface sakenToken {
+    function balance() external view returns (uint256);
+
+    function transfer(address _to, uint256 _tokens) external returns (bool);
+
+    function approve(address _from, uint256 _tokens) external returns (bool);
+
     function transferFrom(
         address _from,
         address _to,
         uint256 _tokens
-    ) external  returns (bool);
-     function allowance(address _owner, address _from)
-        external 
+    ) external returns (bool);
+
+    function allowance(address _owner, address _from)
+        external
         view
         returns (uint256);
-    function mint(uint256 _tokens) external ;
-    function burn(uint256 _tokens) external ;
 
-    
+    function mint(uint256 _tokens) external;
+
+    function burn(uint256 _tokens) external;
 }
+
 contract Saken {
     string public name;
     string public symbol;
@@ -30,10 +31,10 @@ contract Saken {
     uint256 public totalSupply;
     address internal owner;
 
-    mapping(address => uint256) userBalances;
+    mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) tokenAllowance;
 
-    event TransferToken(address senders, address receivers, uint256 amount);
+    event Transfer(address senders, address receivers, uint256 amount);
     event Approval(address owner, address tokenUser, uint256 amount);
 
     constructor(
@@ -47,40 +48,36 @@ contract Saken {
         symbol = _tokensymbol;
         decimal = _decimal;
         totalSupply = _totalSupply;
-        userBalances[msg.sender] = _totalSupply;
+        balances[msg.sender] = _totalSupply;
+        mint(_totalSupply);
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only Owner can access");
+        require(msg.sender == owner, "saken: Only Owner can access");
         _;
     }
 
-    function balanceOf(address _userAddress) public view returns (uint256) {
-        require(_userAddress != address(0), "Invalid address!");
-        return userBalances[_userAddress];
+    function balance() external view returns (uint256) {
+        return balances[msg.sender];
     }
 
-    function transfer(address _to, uint256 _tokens)
-        public
-        returns (bool)
-    {
-        require(
-            userBalances[msg.sender] > 0 && userBalances[msg.sender] >= _tokens,
-            "Failed!"
-        );
-        userBalances[msg.sender] -= _tokens;
-        userBalances[_to] += _tokens;
-        emit TransferToken(msg.sender, _to, _tokens);
+    function transfer(address _to, uint256 _tokens) external returns (bool) {
+        require(balances[msg.sender] >= _tokens, "saken: Failed!");
+        balances[msg.sender] -= _tokens;
+        balances[_to] += _tokens;
+        emit Transfer(msg.sender, _to, _tokens);
         return true;
     }
 
-    function approve(address _from, uint256 _tokens)
-        public
-        returns (bool)
-    { 
-        //TODO : if unsufficient balance to give allowance 
+    function approve(address _from, uint256 _tokens) external returns (bool) {
+        require(
+            balances[_from] >= _tokens,
+            "saken: insuficient balance for approval"
+        );
+
         tokenAllowance[msg.sender][_from] = _tokens;
         emit Approval(msg.sender, _from, _tokens);
+
         return true;
     }
 
@@ -88,34 +85,39 @@ contract Saken {
         address _from,
         address _to,
         uint256 _tokens
-    ) public returns (bool) {
-        require(tokenAllowance[_from][msg.sender] >= _tokens, "Not Allowed");
+    ) external returns (bool) {
         require(
-            userBalances[_from] > 0 && userBalances[_from] >= _tokens,
-            "Failed!"
+            tokenAllowance[_from][msg.sender] >= _tokens,
+            "saken: Not Allowed"
         );
-        userBalances[_from] -= _tokens;
-        userBalances[_to] += _tokens;
-        tokenAllowance[msg.sender][_from] -= _tokens;
-        emit TransferToken(_from, _to, _tokens);
+        require(
+            balances[_from] > 0 && balances[_from] >= _tokens,
+            "saken: Failed!"
+        );
+        balances[_from] -= _tokens;
+        balances[_to] += _tokens;
+        tokenAllowance[_from][msg.sender] -= _tokens;
+        emit Transfer(_from, _to, _tokens);
         return true;
     }
 
-    function allowance(address _owner, address _from)
-        public
+    function allowance(address _owner, address _spender)
+        external
         view
         returns (uint256)
     {
-        return tokenAllowance[_owner][_from];
+        return tokenAllowance[_owner][_spender];
     }
 
-    function mint(uint256 _tokens) public onlyOwner {
+    function mint(uint256 _tokens) internal onlyOwner {
         totalSupply += _tokens;
-        userBalances[owner] += _tokens;
+        balances[owner] += _tokens;
+        emit Transfer(address(0), owner, _tokens);
     }
 
-    function burn(uint256 _tokens) public onlyOwner {
+    function burn(uint256 _tokens) external onlyOwner {
         totalSupply -= _tokens;
-        userBalances[owner] -= _tokens;
+        balances[owner] -= _tokens;
+        emit Transfer(owner, address(0), _tokens);
     }
 }
