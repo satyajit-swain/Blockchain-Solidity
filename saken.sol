@@ -24,7 +24,7 @@ interface sakenToken {
     function burn(uint256 _tokens) external;
 }
 
-contract Saken {
+contract Saken is sakenToken{
     string public name;
     string public symbol;
     uint8 public decimal;
