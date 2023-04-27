@@ -116,17 +116,15 @@ contract Saken2 is sakenToken2 {
         );
 
         totalSupply += _tokens;
-        balances[owner] += _tokens;
         balances[address(this)] += _tokens;
-        emit Transfer(address(0), owner, _tokens);
+        emit Transfer(address(0), address(this), _tokens);
     }
 
     function burn(uint256 _tokens) external onlyOwner {
         totalSupply -= _tokens;
-        balances[owner] -= _tokens;
         balances[address(this)] -= _tokens;
 
-        emit Transfer(owner, address(0), _tokens);
+        emit Transfer(address(this), address(0), _tokens);
     }
 
     function setTokenPrice(uint256 _price) public onlyOwner {
