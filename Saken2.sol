@@ -135,6 +135,10 @@ contract Saken2 is sakenToken2 {
     function buyTokens(uint256 noOfTokens) external payable {
         uint256 amountToBuy = msg.value;
         require(
+            tokensPrice > 0,
+            "Saken: Token price is not set"
+        );
+        require(
             amountToBuy == noOfTokens * tokensPrice/10**decimals,
             "Saken: insufficient ethers to purchase"
         );
