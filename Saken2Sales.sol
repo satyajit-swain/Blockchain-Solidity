@@ -118,14 +118,13 @@ contract Saken2 is sakenToken2 {
         );
 
         totalSupply += _tokens;
-        // balances[owner] += _tokens;
         balances[address(this)] += _tokens;
         emit Transfer(address(0), owner, _tokens);
     }
 
     function burn(uint256 _tokens) external onlyOwner {
         totalSupply -= _tokens;
-        // balances[owner] -= _tokens;
+       
         balances[address(this)] -= _tokens;
 
         emit Transfer(owner, address(0), _tokens);
@@ -143,28 +142,69 @@ contract Saken2 is sakenToken2 {
         uint256 amountToBuy = msg.value;
         uint256 tokensPrice = tokenNormalPrice;
         require(tokensPrice > 0, "Saken2Sales: Token price is not set");
+        require(
+            noOfTokens <= balances[address(this)] && balances[address(this)] > 0,
+            "Saken2Sales: Not enough tokens in the reserve"
+        );
         if (block.timestamp <= saleEndTime && noOfTokens <= offerTokens) {
-            require(msg.sender != owner, "Saken2Sales: You cannpt buy tokens");
+            require(msg.sender != owner, "Saken2Sales: You cann't buy tokens");
                 offerTokens -= noOfTokens;
                 tokensPrice /= 2;
                 offer = true;
         }
-        require(
-            amountToBuy == (noOfTokens * tokensPrice) / 10**decimals,
-            "Saken2Sales: insufficient ethers to purchase"
-        );
-        require(
-            noOfTokens <= balances[address(this)],
-            "Saken2Sales: Not enough tokens in the reserve"
-        );
+
+        if(amountToBuy > (noOfTokens * tokensPrice / 10**decimals)){
+            payable (msg.sender).transfer(amountToBuy - (noOfTokens * tokensPrice / 10**18));
+        }
+        else{
+            require(
+                amountToBuy == (noOfTokens * tokensPrice / 10**decimals),
+                "Saken2Sales: insufficient ethers to purchase"
+            );
+        }
+        
 
         balances[msg.sender] += noOfTokens;
         balances[address(this)] -= noOfTokens;
 
         if (offer) {
-            payable(owner).transfer(address(this).balance);
+            
+            payable(owner).transfer(noOfTokens * tokensPrice / 10**18);
         }
+
+      
         emit Transfer(address(this), msg.sender, noOfTokens);
+    }
+
+    function buyOwnersToken(uint256 noOfTokens) external payable {
+       
+        uint256 amountToBuy = msg.value;
+        uint256 tokensPrice = tokenNormalPrice;
+        require(tokensPrice > 0, "Saken2Sales: Token price is not set");
+        require(
+            noOfTokens <= balances[owner] && balances[owner] > 0,
+            "Saken2Sales: Not enough tokens in the reserve"
+        );
+        
+
+        if(amountToBuy > (noOfTokens * tokensPrice / 10**decimals)){
+            payable (msg.sender).transfer(amountToBuy - (noOfTokens * tokensPrice / 10**18));
+        }
+        else{
+            require(
+                amountToBuy == (noOfTokens * tokensPrice / 10**decimals),
+                "Saken2Sales: insufficient ethers to purchase"
+            );
+        }
+        
+
+        balances[msg.sender] += noOfTokens;
+        balances[owner] -= noOfTokens;
+
+       
+        payable(owner).transfer(noOfTokens * tokensPrice / 10**18);
+      
+        emit Transfer(owner, msg.sender, noOfTokens);
     }
 
     function Withdraw_ContractBalance() external onlyOwner {
