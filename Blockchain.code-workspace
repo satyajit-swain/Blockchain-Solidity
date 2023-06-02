@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../hardhat"
+		},
+		{
+			"path": "../web3"
+		}
+	]
+}
